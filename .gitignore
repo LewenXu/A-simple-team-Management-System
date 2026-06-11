@@ -1,0 +1,22 @@
+# Eclipse workspace files
+.metadata/
+
+# Eclipse local settings
+.settings/
+
+# Java compiled output
+bin/
+out/
+build/
+target/
+*.class
+
+# Logs and temp files
+*.log
+*.tmp
+*.bak
+*.swp
+
+# OS files
+.DS_Store
+Thumbs.db

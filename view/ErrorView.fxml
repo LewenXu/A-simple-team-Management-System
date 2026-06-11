@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import java.net.*?>
+<?import javafx.scene.image.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.control.*?>
+<VBox xmlns="http://javafx.com/javafx/8" xmlns:fx="http://javafx.com/fxml/1"
+      fx:controller="controller.ErrorController"
+      spacing="10" alignment="CENTER" prefWidth="520" styleClass="background">
+    <ImageView fx:id="bannerIv" fitWidth="520" preserveRatio="true"/>
+    <Separator/>
+    <Label fx:id="titleLbl" style="-fx-text-fill:#d23a3a; -fx-font-size:18px; -fx-font-weight:bold;"/>
+    <Separator/>
+    <Label fx:id="messageLbl" wrapText="true" style="-fx-text-fill:#777777;"/>
+    <Separator/>
+    <Button text="Close" onAction="#ok" styleClass="button" prefWidth="480"/>
+    <stylesheets><URL value="@style.css"/></stylesheets>
+</VBox>

@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import java.net.*?>
+<?import javafx.scene.image.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.control.*?>
+
+<SplitPane xmlns="http://javafx.com/javafx/8" xmlns:fx="http://javafx.com/fxml/1"
+           fx:controller="controller.ManagerDashboardController"
+           orientation="VERTICAL" dividerPositions="0.5" styleClass="background">
+    <items>
+        <StackPane fx:id="bannerPane">
+            <ImageView preserveRatio="true" fitWidth="${bannerPane.width}">
+                <image>
+                    <Image url="@image/banner.png"/>
+                </image>
+            </ImageView>
+        </StackPane>
+
+        <VBox alignment="CENTER" spacing="10" styleClass="background">
+            <HBox alignment="CENTER" styleClass="panel-bar">
+                <Label fx:id="teamNameLbl" styleClass="heading"/>
+            </HBox>
+
+            <ImageView fx:id="jerseyIv" fitHeight="260" preserveRatio="true"/>
+
+            <HBox alignment="CENTER" spacing="12">
+                <Button text="Withdraw" onAction="#withdraw" styleClass="button" prefWidth="160"/>
+                <Button text="Manage"   onAction="#openTeamDashboard" styleClass="button" prefWidth="160"/>
+            </HBox>
+
+            <Separator/>
+
+            <HBox alignment="CENTER" spacing="12">
+                <Button text="Swap Team" onAction="#openSwap"   styleClass="button" prefWidth="240"/>
+                <Button text="Close"     onAction="#closeWindow" styleClass="button" prefWidth="240"/>
+            </HBox>
+        </VBox>
+    </items>
+
+    <stylesheets>
+        <URL value="@style.css"/>
+    </stylesheets>
+</SplitPane>
