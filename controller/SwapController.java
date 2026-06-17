@@ -1,48 +1,38 @@
 package controller;
 
-import javafx.collections.FXCollections;
+import au.edu.uts.ap.javafx.Controller;
 import javafx.fxml.FXML;
 import javafx.scene.control.Button;
 import javafx.scene.control.ListView;
-import javafx.stage.Stage;
+import model.application.League;
+import model.application.Manager;
+import model.application.Team;
 
-public class SwapController {
-
-    @FXML private ListView<String> teamLv;
+public class SwapController extends Controller<League> {
+    @FXML private ListView<Team> teamLv;
     @FXML private Button swapBtn;
-
-    private String chosenTeam;
 
     @FXML
     private void initialize() {
-        teamLv.setItems(FXCollections.observableArrayList(
-            "Chippendale Panthers",
-            "Haymarket Storm",
-            "Broadway Bulldogs",
-            "Ultimo Eels"
-        ));
-        swapBtn.disableProperty().bind(teamLv.getSelectionModel().selectedItemProperty().isNull());
-    }
-
-    public void init(String currentTeam) {
-        int i = teamLv.getItems().indexOf(currentTeam);
-        if (i >= 0) teamLv.getSelectionModel().select(i);
-    }
-
-    public String getChosenTeam() {
-        return chosenTeam;
+        teamLv.setItems(model.getManageableTeams().getTeams());
+        swapBtn.disableProperty().bind(
+                teamLv.getSelectionModel().selectedItemProperty().isNull());
     }
 
     @FXML
     private void swap() {
-        chosenTeam = teamLv.getSelectionModel().getSelectedItem();
-        close();
+        Team selectedTeam = teamLv.getSelectionModel().getSelectedItem();
+        Manager manager = model.getLoggedInManager();
+        if (selectedTeam == null || manager == null) {
+            return;
+        }
+
+        model.setManagerForTeam(manager, selectedTeam);
+        stage.close();
     }
 
     @FXML
     private void close() {
-        Stage stage = (Stage) teamLv.getScene().getWindow();
         stage.close();
     }
 }
-

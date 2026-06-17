@@ -55,16 +55,21 @@ public class League {
         team.setManager(manager);
         manageableTeams.getTeams().remove(team);
     }
-    public void withdrawManagerfromTeam(Manager manager){
+    public void withdrawManagerFromTeam(Manager manager){
         if (manager == null) {
             throw new IllegalArgumentException("Manager cannot be null");
         }
         if (manager.getTeam() == null) {
             throw new IllegalArgumentException("Manager does not have a team to withdraw from");
         }
-        manageableTeams.getTeams().add(manager.getTeam());
+        if (!manageableTeams.getTeams().contains(manager.getTeam())) {
+            manageableTeams.getTeams().add(manager.getTeam());
+        }
         manager.getTeam().setManager(null);
         manager.assignTeam(null);
+    }
+    public void withdrawManagerfromTeam(Manager manager){
+        withdrawManagerFromTeam(manager);
     }
     public Manager validateManager(int id) throws UnauthorisedAccessException {
         for (Manager manager : this.managers) {

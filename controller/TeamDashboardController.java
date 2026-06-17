@@ -1,21 +1,35 @@
 package controller;
 
-import javafx.beans.property.SimpleStringProperty;
+import au.edu.uts.ap.javafx.Controller;
+import au.edu.uts.ap.javafx.ViewLoader;
 import javafx.collections.FXCollections;
-import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
-import javafx.scene.control.*;
+import javafx.scene.control.Button;
+import javafx.scene.control.ComboBox;
+import javafx.scene.control.Label;
+import javafx.scene.control.TableColumn;
+import javafx.scene.control.TableView;
+import javafx.scene.control.TextField;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.FlowPane;
+import javafx.scene.layout.HBox;
 import javafx.stage.Stage;
+import model.application.League;
+import model.application.Player;
+import model.application.Team;
+import model.enums.Position;
+import model.exception.InvalidSigningException;
 
-import java.util.*;
+import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Locale;
 
-public class TeamDashboardController {
-
+public class TeamDashboardController extends Controller<League> {
     @FXML private Label teamNameLbl;
     @FXML private TextField nameTf;
+    @FXML private ComboBox<Position> positionCb;
     @FXML private Button signBtn;
     @FXML private Button unsignBtn;
     @FXML private TableView<Player> playerTv;
@@ -23,152 +37,191 @@ public class TeamDashboardController {
     @FXML private TableColumn<Player, String> posCol;
     @FXML private FlowPane activePane;
 
-    private final ObservableList<Player> roster = FXCollections.observableArrayList();
-
+    private final List<ImageView> slots = new ArrayList<>();
+    private Team team;
     private Image noneImage;
     private Image teamJerseyImage;
-
-    private final List<ImageView> slots = new ArrayList<>();
-    private final Map<ImageView, Player> slotOwner = new HashMap<>();
+    private int selectedActiveIndex = -1;
 
     @FXML
     private void initialize() {
-        nameCol.setCellValueFactory(d -> d.getValue().nameProperty());
-        posCol.setCellValueFactory(d -> d.getValue().positionProperty());
-        playerTv.setItems(roster);
-        signBtn.disableProperty().bind(nameTf.textProperty().isEmpty());
-        unsignBtn.disableProperty().bind(playerTv.getSelectionModel().selectedItemProperty().isNull());
-    }
+        if (model.getLoggedInManager() == null || model.getLoggedInManager().getTeam() == null) {
+            throw new IllegalStateException("A manager with a team is required");
+        }
 
-    public void init(String teamName, String jerseyPng) {
-        teamNameLbl.setText(teamName);
-        noneImage = new Image(getClass().getResourceAsStream("/view/image/none.png"));
-        teamJerseyImage = new Image(getClass().getResourceAsStream("/view/image/" + jerseyPng));
-        roster.setAll(sampleRosterFor(teamName));
-        populateActiveIcons(6);
+        team = model.getLoggedInManager().getTeam();
+        teamNameLbl.setText(team.toString());
+        noneImage = loadImage("none.png");
+        teamJerseyImage = loadImage(
+                team.getTeamName().toLowerCase(Locale.ENGLISH) + ".png");
+
+        nameCol.setCellValueFactory(data -> data.getValue().fullNameProperty());
+        posCol.setCellValueFactory(data -> data.getValue().positionProperty());
+        playerTv.setItems(team.getAllPlayers().getPlayers());
+        playerTv.getSelectionModel().selectedItemProperty().addListener(
+                (observable, oldPlayer, newPlayer) -> {
+                    if (newPlayer != null) {
+                        selectedActiveIndex = -1;
+                        refreshSlotSelection();
+                    }
+                    updateUnsignButton();
+                });
+
+        positionCb.setItems(FXCollections.observableArrayList(Position.values()));
+        positionCb.setValue(Position.Forward);
+        signBtn.disableProperty().bind(
+                nameTf.textProperty().isEmpty().or(positionCb.valueProperty().isNull()));
+
+        createActiveSlots();
+        refreshActiveTeam();
     }
 
     @FXML
     private void sign() {
-        String name = nameTf.getText().trim();
-        if (name.isEmpty()) return;
-        roster.add(new Player(name, "Forward"));
-        nameTf.clear();
+        String fullName = nameTf.getText().trim().replaceAll("\\s+", " ");
+        int separator = fullName.indexOf(' ');
+        if (separator <= 0 || separator == fullName.length() - 1) {
+            showError("Enter both a first name and a last name.");
+            return;
+        }
+
+        try {
+            Player player = findPlayer(fullName);
+            if (player == null) {
+                player = new Player(
+                        fullName.substring(0, separator),
+                        fullName.substring(separator + 1),
+                        null,
+                        positionCb.getValue());
+                team.signPlayer(player);
+                model.getPlayers().add(player);
+            } else {
+                team.signPlayer(player);
+            }
+            nameTf.clear();
+            playerTv.getSelectionModel().select(player);
+        } catch (InvalidSigningException e) {
+            showError(e.getMessage());
+        }
+    }
+
+    private Player findPlayer(String fullName) {
+        for (Player player : model.getPlayers().getPlayers()) {
+            if (player.getFullName().equalsIgnoreCase(fullName)) {
+                return player;
+            }
+        }
+        return null;
     }
 
     @FXML
     private void unsign() {
-        Player p = playerTv.getSelectionModel().getSelectedItem();
-        if (p == null) return;
-        playerTv.getItems().remove(p);
-        for (ImageView iv : new ArrayList<>(slotOwner.keySet())) {
-            if (p.equals(slotOwner.get(iv))) {
-                slotOwner.remove(iv);
-                iv.setImage(noneImage);
-            }
+        Player player = selectedActiveIndex >= 0
+                ? team.getAt(selectedActiveIndex)
+                : playerTv.getSelectionModel().getSelectedItem();
+        if (player == null) {
+            return;
         }
+
+        team.unsignPlayer(player);
+        selectedActiveIndex = -1;
+        playerTv.getSelectionModel().clearSelection();
+        refreshActiveTeam();
     }
 
     @FXML
     private void close() {
-        Stage s = (Stage) teamNameLbl.getScene().getWindow();
-        s.close();
+        stage.close();
     }
 
-    private void populateActiveIcons(int count) {
+    private void createActiveSlots() {
         activePane.getChildren().clear();
         slots.clear();
-        slotOwner.clear();
-
         activePane.setOrientation(javafx.geometry.Orientation.VERTICAL);
         activePane.setAlignment(javafx.geometry.Pos.TOP_CENTER);
 
-        javafx.scene.layout.HBox row1 = new javafx.scene.layout.HBox(16);
-        row1.setAlignment(javafx.geometry.Pos.CENTER);
-        javafx.scene.layout.HBox row2 = new javafx.scene.layout.HBox(16);
-        row2.setAlignment(javafx.geometry.Pos.CENTER);
-        javafx.scene.layout.HBox row3 = new javafx.scene.layout.HBox(16);
-        row3.setAlignment(javafx.geometry.Pos.CENTER);
-
+        HBox row1 = createRow();
+        HBox row2 = createRow();
+        HBox row3 = createRow();
         activePane.getChildren().addAll(row1, row2, row3);
 
-        row1.getChildren().add(createSlot());
-        row2.getChildren().add(createSlot());
-        row2.getChildren().add(createSlot());
-        row2.getChildren().add(createSlot());
-        row3.getChildren().add(createSlot());
+        row1.getChildren().add(createSlot(0));
+        row2.getChildren().addAll(createSlot(1), createSlot(2), createSlot(3));
+        row3.getChildren().add(createSlot(4));
     }
 
-    private ImageView createSlot() {
-        ImageView iv = new ImageView(noneImage);
-        iv.setFitWidth(64);
-        iv.setFitHeight(64);
-        iv.setPreserveRatio(true);
-        iv.setOnMouseClicked(e -> assignToSlot(iv));
-        slots.add(iv);
-        return iv;
+    private HBox createRow() {
+        HBox row = new HBox(16);
+        row.setAlignment(javafx.geometry.Pos.CENTER);
+        return row;
     }
 
-    private void assignToSlot(ImageView slot) {
-        Player sel = playerTv.getSelectionModel().getSelectedItem();
-        if (sel == null) return;
-        slot.setImage(teamJerseyImage);
-        slotOwner.put(slot, sel);
+    private ImageView createSlot(int index) {
+        ImageView imageView = new ImageView(noneImage);
+        imageView.setFitWidth(64);
+        imageView.setFitHeight(64);
+        imageView.setPreserveRatio(true);
+        imageView.setOnMouseClicked(event -> handleSlot(index));
+        slots.add(imageView);
+        return imageView;
     }
 
-    private ObservableList<Player> sampleRosterFor(String team) {
-        if ("Haymarket Storm".equals(team)) {
-            return FXCollections.observableArrayList(
-                new Player("Nathan Gasnier","Fullback"),
-                new Player("Finn Gallen","Wing"),
-                new Player("Jake Civoniceva","Centre"),
-                new Player("Connor Watmough","Forward"),
-                new Player("Daniel Kennedy","Halfback"),
-                new Player("Aiden Meninga","Wing"),
-                new Player("Xavier Webcke","Forward")
-            );
-        } else if ("Chippendale Panthers".equals(team)) {
-            return FXCollections.observableArrayList(
-                new Player("Harvey Sutton","Fullback"),
-                new Player("Riley McMahon","Wing"),
-                new Player("Mason Grant","Centre"),
-                new Player("Oscar Talbot","Forward"),
-                new Player("Jasper Reid","Halfback"),
-                new Player("Levi Coleman","Wing"),
-                new Player("Patrick Hayes","Forward")
-            );
-        } else if ("Broadway Bulldogs".equals(team)) {
-            return FXCollections.observableArrayList(
-                new Player("Ethan Johns","Fullback"),
-                new Player("Blake Rogers","Halfback"),
-                new Player("Logan Fraser","Wing"),
-                new Player("Hudson Barrett","Centre"),
-                new Player("Archie Powell","Forward"),
-                new Player("Nate Cooper","Wing"),
-                new Player("Kai Armstrong","Forward")
-            );
-        } else {
-            return FXCollections.observableArrayList(
-                new Player("Caleb Baker","Fullback"),
-                new Player("Ethan Ross","Wing"),
-                new Player("Jude Mitchell","Centre"),
-                new Player("Ryan Ellis","Forward"),
-                new Player("Austin Ward","Halfback"),
-                new Player("Miles Carter","Wing"),
-                new Player("Zac Kelly","Forward")
-            );
+    private void handleSlot(int index) {
+        Player activePlayer = team.getAt(index);
+        if (activePlayer != null) {
+            selectedActiveIndex = index;
+            playerTv.getSelectionModel().clearSelection();
+            refreshSlotSelection();
+            updateUnsignButton();
+            return;
+        }
+
+        Player selectedPlayer = playerTv.getSelectionModel().getSelectedItem();
+        if (selectedPlayer == null) {
+            return;
+        }
+
+        try {
+            team.addToIndex(index, selectedPlayer);
+            selectedActiveIndex = index;
+            refreshActiveTeam();
+        } catch (InvalidSigningException e) {
+            showError(e.getMessage());
         }
     }
 
-    public static class Player {
-        private final SimpleStringProperty name = new SimpleStringProperty();
-        private final SimpleStringProperty position = new SimpleStringProperty();
-        public Player(String name, String position) { this.name.set(name); this.position.set(position); }
-        public String getName() { return name.get(); }
-        public String getPosition() { return position.get(); }
-        public SimpleStringProperty nameProperty() { return name; }
-        public SimpleStringProperty positionProperty() { return position; }
+    private void refreshActiveTeam() {
+        for (int i = 0; i < slots.size(); i++) {
+            slots.get(i).setImage(team.getAt(i) == null ? noneImage : teamJerseyImage);
+        }
+        refreshSlotSelection();
+        updateUnsignButton();
+    }
+
+    private void refreshSlotSelection() {
+        for (int i = 0; i < slots.size(); i++) {
+            slots.get(i).setStyle(i == selectedActiveIndex
+                    ? "-fx-effect: dropshadow(gaussian, #2f80ed, 10, 0.6, 0, 0);"
+                    : "");
+        }
+    }
+
+    private void updateUnsignButton() {
+        boolean activeSelected = selectedActiveIndex >= 0
+                && team.getAt(selectedActiveIndex) != null;
+        unsignBtn.setDisable(!activeSelected
+                && playerTv.getSelectionModel().getSelectedItem() == null);
+    }
+
+    private Image loadImage(String fileName) {
+        InputStream stream = getClass().getResourceAsStream("/view/image/" + fileName);
+        if (stream == null) {
+            throw new IllegalStateException("Missing image: " + fileName);
+        }
+        return new Image(stream);
+    }
+
+    private void showError(String message) {
+        ViewLoader.showStage(message, "/view/ErrorView.fxml", "Error", new Stage());
     }
 }
-
-

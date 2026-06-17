@@ -12,7 +12,7 @@ public class ErrorController extends Controller<String> {
     @FXML private Label messageLbl;
     @FXML private void initialize() {
         bannerIv.setImage(new Image(getClass().getResourceAsStream("/view/image/error.png")));
-        titleLbl.setText("UnauthorisedAccessException");
+        titleLbl.setText("Error");
         messageLbl.setText(model == null ? "" : model);
     }
 

@@ -2,13 +2,15 @@
 .metadata/
 
 # Eclipse local settings
-.settings/
+.settings/*
+!.settings/org.eclipse.jdt.core.prefs
 
 # Java compiled output
 bin/
 out/
 build/
 target/
+.tmpbuild/
 *.class
 
 # Logs and temp files

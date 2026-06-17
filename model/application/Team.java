@@ -42,6 +42,7 @@ public class Team {
     public void addToCurrent(Player p) throws InvalidSigningException {
         if (p == null) throw new IllegalArgumentException("player is null");
         if (indexOf(p) >= 0) throw new InvalidSigningException("Player already in the current team.");
+        ensureAvailablePlayer(p);
         if (currentSize() >= REQUIRED_TEAM_SIZE) throw new InvalidSigningException("Current team is full.");
         int slot = firstEmptySlot();
         if (slot < 0) throw new InvalidSigningException("No empty slot in current team.");
@@ -52,6 +53,7 @@ public class Team {
         ensureIndexBounds(index);
         if (p == null) throw new IllegalArgumentException("player is null");
         if (indexOf(p) >= 0) throw new InvalidSigningException("Player already in the current team.");
+        ensureAvailablePlayer(p);
         if (currentTeam[index] != null) throw new InvalidSigningException("Target position is already allocated.");
         if (currentSize() >= REQUIRED_TEAM_SIZE) throw new InvalidSigningException("Current team is full.");
         currentTeam[index] = p;
@@ -66,6 +68,24 @@ public class Team {
         }
     }
     public void removeFromCurrent1(Player p) { removeFromCurrent(p); }
+    public void signPlayer(Player p) throws InvalidSigningException {
+        if (p == null) throw new IllegalArgumentException("player is null");
+        if (p.getTeam() != null) {
+            throw new InvalidSigningException("Player is already signed to a team.");
+        }
+        if (allPlayers.getPlayers().contains(p) || indexOf(p) >= 0) {
+            throw new InvalidSigningException("Player is already signed to this team.");
+        }
+        p.setTeam(this);
+        allPlayers.add(p);
+    }
+    public void unsignPlayer(Player p) {
+        if (p == null || p.getTeam() != this) return;
+        int index = indexOf(p);
+        if (index >= 0) currentTeam[index] = null;
+        allPlayers.remove(p);
+        p.setTeam(null);
+    }
     public void fillToRequired() throws FillException {
         while (currentSize() < REQUIRED_TEAM_SIZE) {
             Player candidate = firstCandidateFromPoolNotInCurrent();
@@ -93,6 +113,15 @@ public class Team {
         int c = 0;
         for (Player p : currentTeam) if (p != null) c++;
         return c;
+    }
+    private void ensureAvailablePlayer(Player p) throws InvalidSigningException {
+        if (!allPlayers.getPlayers().contains(p)) {
+            throw new InvalidSigningException("Player is not available for this team.");
+        }
+        if (p.getTeam() != null && p.getTeam() != this) {
+            throw new InvalidSigningException("Player is signed to another team.");
+        }
+        if (p.getTeam() == null) p.setTeam(this);
     }
     private int firstEmptySlot() {
         for (int i = 0; i < currentTeam.length; i++) if (currentTeam[i] == null) return i;

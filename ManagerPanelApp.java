@@ -13,6 +13,6 @@ public class ManagerPanelApp extends Application {
         SeedData seededData = new SeedData();
         seededData.seed();
         League.initialize(seededData.teams(), seededData.players(), seededData.managers());
-        ViewLoader.showStage(League.getInstance(), "/view/LoginView.fxml", "Login", new Stage());
+        ViewLoader.showStage(League.getInstance(), "/view/LoginView.fxml", "Login", stage);
     }
 }

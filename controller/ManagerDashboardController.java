@@ -1,92 +1,96 @@
 package controller;
 
 import au.edu.uts.ap.javafx.Controller;
+import au.edu.uts.ap.javafx.ViewLoader;
 import javafx.fxml.FXML;
-import javafx.fxml.FXMLLoader;
-import javafx.scene.Parent;
-import javafx.scene.Scene;
+import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
+import model.application.League;
+import model.application.Manager;
+import model.application.Team;
 
 import java.io.InputStream;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.Locale;
 
-public class ManagerDashboardController extends Controller {
-
+public class ManagerDashboardController extends Controller<League> {
     @FXML private Label teamNameLbl;
     @FXML private ImageView jerseyIv;
-
-    private String currentTeam = "Ultimo Eels";
-
-    private final Map<String, String> jerseyFile = new HashMap<String, String>() {{
-        put("Ultimo Eels", "eels.png");
-        put("Chippendale Panthers", "panthers.png");
-        put("Haymarket Storm", "storm.png");
-        put("Broadway Bulldogs", "bulldogs.png");
-    }};
+    @FXML private Button withdrawBtn;
+    @FXML private Button manageBtn;
+    @FXML private Button swapBtn;
 
     @FXML
-    private void initialize() { setTeam(currentTeam); }
-
-    public void setModel(Object model) { setTeam(currentTeam); }
-
-    private void setTeam(String name) {
-        currentTeam = name;
-        teamNameLbl.setText(name);
-        String file = jerseyFile.getOrDefault(name, "eels.png");
-        InputStream is = getClass().getResourceAsStream("/view/image/" + file);
-        if (is == null) is = getClass().getResourceAsStream("/view/image/eels.png");
-        jerseyIv.setImage(new Image(is));
+    private void initialize() {
+        refreshDashboard();
     }
 
-    @FXML private void withdraw() {}
-    @FXML private void closeWindow() {
-        Stage stage = (Stage) teamNameLbl.getScene().getWindow();
+    private void refreshDashboard() {
+        Manager manager = model.getLoggedInManager();
+        Team team = manager == null ? null : manager.getTeam();
+
+        teamNameLbl.setText(team == null ? "No Team" : team.toString());
+        jerseyIv.setImage(loadImage(team == null ? "none.png" : jerseyFile(team)));
+        withdrawBtn.setDisable(team == null);
+        manageBtn.setDisable(team == null);
+        swapBtn.setDisable(model.getManageableTeams().getTeams().isEmpty());
+    }
+
+    private String jerseyFile(Team team) {
+        return team.getTeamName().toLowerCase(Locale.ENGLISH) + ".png";
+    }
+
+    private Image loadImage(String fileName) {
+        InputStream stream = getClass().getResourceAsStream("/view/image/" + fileName);
+        if (stream == null) {
+            stream = getClass().getResourceAsStream("/view/image/none.png");
+        }
+        if (stream == null) {
+            throw new IllegalStateException("Missing jersey image: " + fileName);
+        }
+        return new Image(stream);
+    }
+
+    @FXML
+    private void withdraw() {
+        Manager manager = model.getLoggedInManager();
+        if (manager != null && manager.getTeam() != null) {
+            model.withdrawManagerFromTeam(manager);
+            refreshDashboard();
+        }
+    }
+
+    @FXML
+    private void closeWindow() {
         stage.close();
     }
 
     @FXML
     private void openTeamDashboard() {
-        try {
-            FXMLLoader loader = new FXMLLoader(getClass().getResource("/view/TeamDashboardView.fxml"));
-            Parent root = loader.load();
-            TeamDashboardController c = loader.getController();
-            String jerseyPng = jerseyFile.getOrDefault(currentTeam, "eels.png");
-            c.init(currentTeam, jerseyPng);
-            Stage stage = new Stage();
-            stage.setTitle("Team Dashboard");
-            stage.initOwner(teamNameLbl.getScene().getWindow());
-            stage.initModality(Modality.WINDOW_MODAL);
-            stage.setScene(new Scene(root));
-            stage.show();
-        } catch (Exception e) {
-            e.printStackTrace();
+        Manager manager = model.getLoggedInManager();
+        if (manager == null || manager.getTeam() == null) {
+            return;
         }
+
+        Stage dashboardStage = new Stage();
+        dashboardStage.initOwner(stage);
+        dashboardStage.initModality(Modality.WINDOW_MODAL);
+        ViewLoader.showStage(model, "/view/TeamDashboardView.fxml", "Team Dashboard", dashboardStage);
     }
 
     @FXML
     private void openSwap() {
-        try {
-            FXMLLoader loader = new FXMLLoader(getClass().getResource("/view/SwapView.fxml"));
-            Parent root = loader.load();
-            SwapController sc = loader.getController();
-            sc.init(currentTeam);
-            Stage stage = new Stage();
-            stage.setTitle("Swap");
-            stage.initOwner(teamNameLbl.getScene().getWindow());
-            stage.initModality(Modality.WINDOW_MODAL);
-            stage.setScene(new Scene(root));
-            stage.showAndWait();
-            String chosen = sc.getChosenTeam();
-            if (chosen != null && !chosen.equals(currentTeam)) setTeam(chosen);
-        } catch (Exception e) {
-            e.printStackTrace();
+        if (model.getManageableTeams().getTeams().isEmpty()) {
+            return;
         }
+
+        Stage swapStage = new Stage();
+        swapStage.initOwner(stage);
+        swapStage.initModality(Modality.WINDOW_MODAL);
+        ViewLoader.showStage(model, "/view/SwapView.fxml", "Swap Team", swapStage,
+                this::refreshDashboard);
     }
 }
-
-

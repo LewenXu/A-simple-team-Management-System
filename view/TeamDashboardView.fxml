@@ -29,12 +29,14 @@
                         <columnConstraints>
                             <ColumnConstraints minWidth="150" prefWidth="160"/>
                             <ColumnConstraints hgrow="ALWAYS"/>
+                            <ColumnConstraints minWidth="110" prefWidth="110"/>
                             <ColumnConstraints minWidth="80" prefWidth="80"/>
                         </columnConstraints>
                         <children>
                             <Label text="Sign a new player:" GridPane.columnIndex="0"/>
                             <TextField fx:id="nameTf" GridPane.columnIndex="1"/>
-                            <Button fx:id="signBtn" text="Sign" onAction="#sign" GridPane.columnIndex="2"/>
+                            <ComboBox fx:id="positionCb" GridPane.columnIndex="2" prefWidth="110"/>
+                            <Button fx:id="signBtn" text="Sign" onAction="#sign" GridPane.columnIndex="3"/>
                         </children>
                     </GridPane>
 

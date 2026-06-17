@@ -1,0 +1,17 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "java",
+            "name": "Run ManagerPanelApp",
+            "request": "launch",
+            "mainClass": "ManagerPanelApp",
+            "javaExec": "C:\\Program Files\\Java\\jdk1.8.0_351\\bin\\java.exe",
+            "classPaths": [
+                "${workspaceFolder}\\bin",
+                "${workspaceFolder}"
+            ],
+            "preLaunchTask": "Compile JavaFX 8"
+        }
+    ]
+}
