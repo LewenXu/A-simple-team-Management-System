@@ -36,7 +36,7 @@ public class ManagerDashboardController extends Controller<League> {
         jerseyIv.setImage(loadImage(team == null ? "none.png" : jerseyFile(team)));
         withdrawBtn.setDisable(team == null);
         manageBtn.setDisable(team == null);
-        swapBtn.setDisable(model.getManageableTeams().getTeams().isEmpty());
+        swapBtn.setDisable(!hasSwapOptions());
     }
 
     private String jerseyFile(Team team) {
@@ -52,6 +52,11 @@ public class ManagerDashboardController extends Controller<League> {
             throw new IllegalStateException("Missing jersey image: " + fileName);
         }
         return new Image(stream);
+    }
+
+    private boolean hasSwapOptions() {
+        return !model.getManageableTeams().getTeams().isEmpty()
+                || !model.getAddableTeamTemplates().getTeams().isEmpty();
     }
 
     @FXML
@@ -83,7 +88,7 @@ public class ManagerDashboardController extends Controller<League> {
 
     @FXML
     private void openSwap() {
-        if (model.getManageableTeams().getTeams().isEmpty()) {
+        if (!hasSwapOptions()) {
             return;
         }
 

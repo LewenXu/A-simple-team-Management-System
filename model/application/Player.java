@@ -20,6 +20,8 @@ public class Player {
         this.fullNameProperty = new SimpleStringProperty(firstName + " " + lastName);
         this.positionProperty = new SimpleStringProperty(position.toString());
     }
+    public String getFirstName() { return firstName; }
+    public String getLastName() { return lastName; }
     public String getFullName() { return fullNameProperty.get(); }
     public Team getTeam() { return team; }
     public void setTeam(Team team) { this.team = team; }

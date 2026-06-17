@@ -23,7 +23,13 @@
             <HBox alignment="CENTER" styleClass="panel-bar">
                 <Label text="Swap Team" styleClass="heading"/>
             </HBox>
-            <ListView fx:id="teamLv" prefHeight="280"/>
+            <ListView fx:id="teamLv" prefHeight="230"/>
+            <HBox alignment="CENTER" spacing="10" styleClass="panel-bar">
+                <Label text="Add Team:"/>
+                <ComboBox fx:id="addTeamCb" prefWidth="220"/>
+                <ImageView fx:id="addTeamJerseyIv" fitHeight="48" preserveRatio="true"/>
+                <Button fx:id="addTeamBtn" text="Add Team" onAction="#addTeam" styleClass="button" prefWidth="150"/>
+            </HBox>
         </VBox>
     </center>
 

@@ -1,16 +1,19 @@
 package model.application;
 
 import model.exception.UnauthorisedAccessException;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.stream.Collectors;
 
 public class League {
     private static League instance;
+    private final Teams teamTemplates;
     private final Teams manageableTeams;
     private final List<Manager> managers;
     private final Players players;
     private Manager loggedInManager;
     private League(Teams seededTeams, Players seededPlayers, List<Manager> seededManagers) {
+        this.teamTemplates = seededTeams;
         this.manageableTeams = new Teams(seededTeams.getTeams().stream().filter(team -> team.getManager() == null).collect(Collectors.toList()));
         this.players = seededPlayers;
         this.managers = seededManagers;
@@ -31,6 +34,11 @@ public class League {
     }
     public Teams getManageableTeams() {
         return manageableTeams;
+    }
+    public Teams getAddableTeamTemplates() {
+        return new Teams(teamTemplates.getTeams().stream()
+                .filter(this::isAddableTeamTemplate)
+                .collect(Collectors.toList()));
     }
     public Players getPlayers() { return players; }
     public Manager getLoggedInManager() {
@@ -55,6 +63,23 @@ public class League {
         team.setManager(manager);
         manageableTeams.getTeams().remove(team);
     }
+    public Team addManageableTeamFromTemplate(Team template) {
+        if (template == null) {
+            throw new IllegalArgumentException("Team template cannot be null");
+        }
+
+        Team existingTeam = findManageableTeam(template);
+        if (existingTeam != null) {
+            return existingTeam;
+        }
+        if (!isAddableTeamTemplate(template)) {
+            throw new IllegalArgumentException("Team template cannot be added");
+        }
+
+        Team addedTeam = copyTeamTemplate(template);
+        manageableTeams.getTeams().add(addedTeam);
+        return addedTeam;
+    }
     public void withdrawManagerFromTeam(Manager manager){
         if (manager == null) {
             throw new IllegalArgumentException("Manager cannot be null");
@@ -78,6 +103,41 @@ public class League {
             }
         }
         throw new UnauthorisedAccessException("Invalid login credentials");
+    }
+
+    private boolean isAddableTeamTemplate(Team template) {
+        Manager manager = getLoggedInManager();
+        Team currentTeam = manager == null ? null : manager.getTeam();
+        return !sameTeamIdentity(template, currentTeam)
+                && findManageableTeam(template) == null;
+    }
+
+    private Team findManageableTeam(Team template) {
+        for (Team team : manageableTeams.getTeams()) {
+            if (sameTeamIdentity(team, template)) {
+                return team;
+            }
+        }
+        return null;
+    }
+
+    private boolean sameTeamIdentity(Team a, Team b) {
+        return a != null && b != null
+                && a.getLocalName().equals(b.getLocalName())
+                && a.getTeamName().equals(b.getTeamName());
+    }
+
+    private Team copyTeamTemplate(Team template) {
+        Players copiedPlayers = new Players(new LinkedList<Player>());
+        Team copiedTeam = new Team(template.getLocalName(), template.getTeamName(), null, copiedPlayers);
+        for (Player player : template.getAllPlayers().getPlayers()) {
+            copiedPlayers.add(new Player(
+                    player.getFirstName(),
+                    player.getLastName(),
+                    copiedTeam,
+                    player.getPositionEnum()));
+        }
+        return copiedTeam;
     }
 }
 
