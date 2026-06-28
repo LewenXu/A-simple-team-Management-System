@@ -17,5 +17,6 @@
     "search.exclude": {
         "**/.tmpbuild": true,
         "**/bin": true
-    }
+    },
+    "java.debug.settings.onBuildFailureProceed": true
 }

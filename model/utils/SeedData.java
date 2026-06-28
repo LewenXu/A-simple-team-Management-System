@@ -76,7 +76,8 @@ public class SeedData {
                 new Player("Anthony", "Hughes", null, Position.Halfback),
                 new Player("Joel", "King", null, Position.Fullback),
                 new Player("Micah", "Sutton", null, Position.Wing),
-                new Player("Reuben", "Armstrong", null, Position.Forward)
+                new Player("Reuben", "Armstrong", null, Position.Forward),
+                new Player("tingrui", "chen", null, Position.Centre)
         ));
     }
 
